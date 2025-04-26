@@ -54,7 +54,7 @@ if (import.meta.main) {
   const speakers = await jptts.fetchSpeakers('coeiroink', true);
   console.log(JSON.stringify(speakers, null, 2)); // 話者リストを表示
   const text = 'こんにちは、世界！';
-  const speaker = 1120; // 話者IDを指定
+  const speaker = 11191; // 話者IDを指定
   const service = 'coeiroink'; // 使用するサービスを指定（'coeiroink' または 'voicevox'）
   const result = await jptts.generate(text, speaker, service);
   await result.saveToFile('output.wav');
