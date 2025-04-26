@@ -27,3 +27,8 @@
 3. **Error Handling**:
    - Common TypeScript pitfalls for Python developers
    - Bun vs Node.js compatibility notes
+
+4. **Code Block Format**:
+   - Always include the file name/path as a comment at the beginning of each code block
+   - Use the format: `// filepath: path/to/file`
+   - Add file name/path explanation in text before each code block

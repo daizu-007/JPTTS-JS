@@ -1,33 +1,61 @@
-// index.ts
-// 最終的にはここがエントリーポイントになるが、しばらくは実験場になる。
+// src/index.ts
+// ライブラリのエントリーポイント
+
+import AudioResult from '@/utils/audioResult';
+import coeiroink from './services/coeiroink';
 import voicevox from './services/voicevox';
-import * as readline from 'node:readline/promises';
-import { stdin as input, stdout as output } from 'node:process';
 
-// これでpythonのinput()と同じように使えるらしい
-const rl = readline.createInterface({ input, output });
+// メインとなるクラスを定義
+class JPTTS {
+  // ここで各種APIキーを入れる変数を定義する
+  // 今のところなし
 
-async function main() {
-  while (true) {
-    console.log('以下のリストから話者を選択してください。');
-    const speakers = await voicevox.fetchSpeakers();
+  // Pythonでいうところの__init__メソッド
+  constructor() {
+    // 初期化処理があればここに書く
+  }
 
-    speakers.forEach((speaker: any) => {
-      console.log(`${speaker.speaker_id} ${speaker.name}`);
-    });
-
-    const speakerId = await rl.question('話者IDを入力してください: ');
-
-    const audioData = await voicevox.tts('こんにちは、世界！', parseInt(speakerId));
-    Bun.write('output.wav', audioData); // 書き込み先のファイル名を指定
-    await Bun.spawn(['powershell', '-c', "(New-Object Media.SoundPlayer 'output.wav').PlaySync()"]).exited;
-
-    if ((await rl.question('続けますか？ (y/n): ')) !== 'y') {
-      console.log('終了します。');
-      rl.close();
-      return;
+  // 話者リストを取得するメソッド
+  async fetchSpeakers(
+    service: 'coeiroink' | 'voicevox',
+    forceRefresh?: boolean
+  ): Promise<Array<{ name: string; styles: Array<{ name: string; id: number }> }>> {
+    let speakers: Array<{ name: string; styles: Array<{ name: string; id: number }> }> | null = null;
+    // 指定されたサービスに応じて話者リストを取得する
+    if (service === 'coeiroink') {
+      speakers = await coeiroink.fetchSpeakers(forceRefresh);
+    } else if (service === 'voicevox') {
+      speakers = await voicevox.fetchSpeakers(forceRefresh);
+    } else {
+      throw new Error('Invalid service specified');
     }
+    return speakers;
+  }
+
+  // 音声合成を行うメソッド
+  async generate(text: string, speaker: number, service: 'coeiroink' | 'voicevox'): Promise<AudioResult> {
+    let audioData: AudioResult;
+    // 指定されたサービスに応じて音声合成を行う
+    if (service === 'coeiroink') {
+      audioData = await coeiroink.tts(text, speaker);
+    } else if (service === 'voicevox') {
+      audioData = await voicevox.tts(text, speaker);
+    } else {
+      throw new Error('Invalid service specified');
+    }
+    return audioData;
   }
 }
 
-main().catch(console.error);
+if (import.meta.main) {
+  // 試してみる
+  const jptts = new JPTTS();
+  // 話者リストを取得する例
+  const speakers = await jptts.fetchSpeakers('coeiroink', true);
+  console.log(JSON.stringify(speakers, null, 2)); // 話者リストを表示
+  const text = 'こんにちは、世界！';
+  const speaker = 1120; // 話者IDを指定
+  const service = 'coeiroink'; // 使用するサービスを指定（'coeiroink' または 'voicevox'）
+  const result = await jptts.generate(text, speaker, service);
+  await result.saveToFile('output.wav');
+}

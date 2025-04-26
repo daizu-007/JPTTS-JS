@@ -1,4 +1,6 @@
-// voicevox.ts
+// src/services/voicevox.ts
+
+import AudioResult from '@/utils/audioResult';
 
 const voicevox = { tts, fetchSpeakers };
 export default voicevox;
@@ -7,8 +9,8 @@ export default voicevox;
 const VOICEVOX_API_BASE_URL = 'http://localhost:50021';
 const CONTENT_TYPE_JSON = 'application/json';
 let cache_speakers: Array<{
-  speaker_id: number;
   name: string;
+  styles: Array<{ name: string; id: number }>;
 }> | null = null;
 
 // 音声合成用のクエリを作成する関数
@@ -43,7 +45,9 @@ async function fetchAudioData(query: any, speaker: number): Promise<ArrayBuffer>
 }
 
 // 話者のリストを取得する関数
-async function fetchSpeakers(forceRefresh?: boolean): Promise<Array<{ speaker_id: number; name: string }>> {
+async function fetchSpeakers(
+  forceRefresh?: boolean
+): Promise<Array<{ name: string; styles: Array<{ name: string; id: number }> }>> {
   const shouldForceRefresh = forceRefresh ?? false;
   // キャッシュがある場合はそれを返す
   if (cache_speakers !== null && !shouldForceRefresh) {
@@ -67,13 +71,18 @@ async function fetchSpeakers(forceRefresh?: boolean): Promise<Array<{ speaker_id
     version: string;
     supported_features: { permitted_synthesis_morphing: string };
   }>;
-  const speakers: Array<{ speaker_id: number; name: string }> = [];
+  const speakers: Array<{ name: string; styles: Array<{ name: string; id: number }> }> = [];
   speakersResponse.forEach((speaker) => {
+    const styles: Array<{ name: string; id: number }> = [];
     speaker.styles.forEach((style) => {
-      speakers.push({
-        speaker_id: style.id,
-        name: `${speaker.name} (${style.name})`,
+      styles.push({
+        name: style.name,
+        id: style.id,
       });
+    });
+    speakers.push({
+      name: speaker.name,
+      styles: styles,
     });
   });
   // キャッシュに保存
@@ -82,8 +91,8 @@ async function fetchSpeakers(forceRefresh?: boolean): Promise<Array<{ speaker_id
 }
 
 // 音声合成エンドポイント
-async function tts(text: string, speaker: number): Promise<ArrayBuffer> {
+async function tts(text: string, speaker: number): Promise<AudioResult> {
   const audioQuery = await fetchAudioQuery(text, speaker);
   const audioData = await fetchAudioData(audioQuery, speaker);
-  return audioData;
+  return new AudioResult(audioData); // AudioResultクラスのインスタンスを返す
 }
