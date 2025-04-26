@@ -50,11 +50,16 @@ class JPTTS {
 if (import.meta.main) {
   // 試してみる
   const jptts = new JPTTS();
+  // サーバーの状態を確認する例
+  const isServerRunning = await voicevox.checkServerStatus();
+  console.log(`VOICEVOX server is running: ${isServerRunning}`); // サーバーの状態を表示
+  const isServerRunning2 = await coeiroink.checkServerStatus();
+  console.log(`COEIROINK server is running: ${isServerRunning2}`); // サーバーの状態を表示
   // 話者リストを取得する例
   const speakers = await jptts.fetchSpeakers('coeiroink', true);
   console.log(JSON.stringify(speakers, null, 2)); // 話者リストを表示
   const text = 'こんにちは、世界！';
-  const speaker = 11191; // 話者IDを指定
+  const speaker = 104112; // 話者IDを指定
   const service = 'coeiroink'; // 使用するサービスを指定（'coeiroink' または 'voicevox'）
   const result = await jptts.generate(text, speaker, service);
   await result.saveToFile('output.wav');

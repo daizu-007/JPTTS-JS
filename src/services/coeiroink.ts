@@ -2,7 +2,7 @@
 
 import AudioResult from '@/utils/audioResult';
 
-const coeiroink = { tts, fetchSpeakers };
+const coeiroink = { tts, fetchSpeakers, checkServerStatus };
 export default coeiroink;
 
 // 定数定義
@@ -13,6 +13,25 @@ let cache_speakers: Array<{
   name: string;
   styles: Array<{ name: string; id: number }>;
 }> | null = null;
+
+// 動作しているか確認する関数
+async function checkServerStatus(): Promise<boolean> {
+  try {
+    const result = await fetch(COEIROINK_API_BASE_URL, {
+      method: 'GET',
+      headers: {
+        'Content-Type': CONTENT_TYPE_JSON,
+      },
+    });
+    if (!result.ok) {
+      return false;
+    } else {
+      return true;
+    }
+  } catch (error) {
+    return false;
+  }
+}
 
 // 音声合成を行う関数
 async function fetchAudioData(text: string, speaker: number): Promise<ArrayBuffer> {

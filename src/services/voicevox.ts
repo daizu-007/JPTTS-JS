@@ -2,7 +2,7 @@
 
 import AudioResult from '@/utils/audioResult';
 
-const voicevox = { tts, fetchSpeakers };
+const voicevox = { tts, fetchSpeakers, checkServerStatus };
 export default voicevox;
 
 // 定数定義
@@ -12,6 +12,25 @@ let cache_speakers: Array<{
   name: string;
   styles: Array<{ name: string; id: number }>;
 }> | null = null;
+
+// 動作しているか確認する関数
+async function checkServerStatus(): Promise<boolean> {
+  try {
+    const result = await fetch(VOICEVOX_API_BASE_URL, {
+      method: 'GET',
+      headers: {
+        'Content-Type': CONTENT_TYPE_JSON,
+      },
+    });
+    if (!result.ok) {
+      return false;
+    } else {
+      return true;
+    }
+  } catch (error) {
+    return false;
+  }
+}
 
 // 音声合成用のクエリを作成する関数
 async function fetchAudioQuery(text: string, speaker: number): Promise<any> {
