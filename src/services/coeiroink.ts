@@ -1,6 +1,6 @@
 // src/services/coeiroink.ts
 
-import AudioResult from '@/utils/audioResult';
+import AudioResult from '../utils/audioResult.js';
 
 const coeiroink = { tts, fetchSpeakers, checkServerStatus };
 export default coeiroink;

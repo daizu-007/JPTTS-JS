@@ -1,6 +1,6 @@
 // src/services/voicevox.ts
 
-import AudioResult from '@/utils/audioResult';
+import AudioResult from '../utils/audioResult.js';
 
 const voicevox = { tts, fetchSpeakers, checkServerStatus };
 export default voicevox;
