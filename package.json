@@ -2,10 +2,19 @@
   "name": "jptts-js",
   "version": "0.0.1",
   "description": "様々な日本語合成音声アプリを統合的に利用できるJSライブラリ",
-  "module": "index.ts",
+  "module": "index.js",
   "type": "module",
   "author": "daizu-007",
   "license": "Apache-2.0",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/daizu-007/jptts-js.git"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "@typescript-eslint/eslint-plugin": "^8.29.0",

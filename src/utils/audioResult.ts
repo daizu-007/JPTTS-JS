@@ -15,9 +15,7 @@ class AudioResult {
   async saveToFile(filename: string): Promise<void> {
     if (!this.audioData) {
       throw new Error('Audio data is not available');
-    }
-    // Node.js環境の場合
-    else {
+    } else {
       await fs.writeFile(filename, Buffer.from(this.audioData));
     }
   }
