@@ -56,6 +56,9 @@ class JPTTS {
 
   // 利用可能なサービスを取得するメソッド
   async fetchAvailableServices(): Promise<Array<string>> {
+    if (!this.isInitialized) {
+      await this.init(); // 初期化が完了していない場合は初期化を行う
+    }
     // 利用可能なサービスのリストを返す
     return Object.keys(this.availableServices);
   }
@@ -65,6 +68,9 @@ class JPTTS {
     service: string,
     forceRefresh?: boolean
   ): Promise<Array<{ name: string; styles: Array<{ name: string; id: number }> }>> {
+    if (!this.isInitialized) {
+      await this.init(); // 初期化が完了していない場合は初期化を行う
+    }
     let speakers: Array<{ name: string; styles: Array<{ name: string; id: number }> }> | null = null;
     // 指定されたサービスに応じて話者リストを取得する
     if (this.availableServices[service]) {
@@ -79,6 +85,9 @@ class JPTTS {
 
   // 音声合成を行うメソッド
   async generate(text: string, speaker: number, service: string): Promise<AudioResult> {
+    if (!this.isInitialized) {
+      await this.init();
+    }
     let audioData: AudioResult;
     // 指定されたサービスに応じて音声合成を行う
     if (this.availableServices[service]) {
