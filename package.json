@@ -34,6 +34,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write .",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "e2e": "bun examples/example.ts"
   }
 }
