@@ -7,6 +7,7 @@ import AudioResult from '../utils/audioResult.js';
 export type ServiceConfig = {
   baseUrl?: string; // APIのベースURL
   apiKey?: string; // APIキー
+  exePath?: string; // 実行ファイルのパス
 };
 
 // JPTTS全体の設定の型を定義

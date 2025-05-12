@@ -2,6 +2,7 @@
 
 import JPTTS from '../dist/index.js';
 import * as readline from 'readline';
+import { JPTTSConfig } from '../dist/types/service.js';
 
 // コマンドライン入力を受け取れるようにする
 const rl = readline.createInterface({
@@ -18,9 +19,12 @@ function input(prompt: string): Promise<string> {
 }
 
 // コンフィグを設定
-const config = {
-  VOICEVOX: {
+const config: JPTTSConfig = {
+  voicevox: {
     baseUrl: 'http://localhost:50021',
+  },
+  talqu: {
+    exePath: 'C:/Applications/TALQu/TALQu_CMDClient.exe',
   },
 };
 // JPTTSのインスタンスを作成
