@@ -8,6 +8,7 @@ export type ServiceConfig = {
   baseUrl?: string; // APIのベースURL
   apiKey?: string; // APIキー
   exePath?: string; // 実行ファイルのパス
+  timeout?: number; // タイムアウト時間（ミリ秒）
 };
 
 // JPTTS全体の設定の型を定義

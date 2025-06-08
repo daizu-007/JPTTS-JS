@@ -7,6 +7,7 @@ import { promisify } from 'util';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
+import { error } from 'console';
 
 const execPromise = promisify(exec);
 
@@ -24,6 +25,7 @@ class Talqu implements TTSService {
 
   constructor(config: ServiceConfig = {}) {
     this.config = {
+      timeout: 5000, // デフォルトのタイムアウト時間(ミリ秒)
       ...config,
     };
   }
@@ -38,7 +40,13 @@ class Talqu implements TTSService {
     try {
       await fs.access(this.config.exePath!);
       await this.getVersion();
-      return true;
+      // 起動していなくてもバージョンを返すため実際に動作することを確認する
+      try {
+        await this.runCommandWithTimeout(`"${this.config.exePath}" getSpkName`);
+        return true;
+      } catch (error) {
+        return false;
+      }
     } catch (error) {
       return false;
     }
@@ -62,7 +70,8 @@ class Talqu implements TTSService {
       return this.cache_speakers;
     }
     try {
-      const { stdout } = await execPromise(`"${this.config.exePath}" getSpkName`);
+      // タイムアウトがないとフリーズの原因となるため、タイムアウト付きでコマンドを実行
+      const stdout = await this.runCommandWithTimeout(`"${this.config.exePath}" getSpkName`);
       const speakerNames = stdout.trim().split(',');
       // JPTTSの形式に変換
       this.cache_speakers = speakerNames.map((name, index) => {
@@ -105,7 +114,7 @@ class Talqu implements TTSService {
         '', // refine_flag
       ];
       const commandStr = args.join(',');
-      await execPromise(`"${this.config.exePath}" ${commandStr}`);
+      await this.runCommandWithTimeout(`"${this.config.exePath}" synthesize ${commandStr}`);
       // 生成された音声ファイルを読み込み
       const Buffer = await fs.readFile(tempWavPath);
       // ArrayBufferに変換
@@ -118,4 +127,26 @@ class Talqu implements TTSService {
       throw new Error(`TALQuでの音声合成に失敗しました: ${error}`);
     }
   }
+
+  // タイムアウト付きでコマンドを実行するヘルパー関数
+  private async runCommandWithTimeout(command: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const childProcess = exec(command, (error, stdout) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve(stdout.trim());
+      });
+      const timeout = setTimeout(() => {
+        childProcess.kill();
+        reject(new Error(`Command timed out: ${command}`));
+      }, this.config.timeout!);
+      childProcess.on('exit', () => {
+        clearTimeout(timeout);
+      });
+    });
+  }
 }
+
+export default Talqu;
