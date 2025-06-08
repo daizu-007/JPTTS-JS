@@ -25,7 +25,7 @@ class Talqu implements TTSService {
 
   constructor(config: ServiceConfig = {}) {
     this.config = {
-      timeout: 5000, // デフォルトのタイムアウト時間(ミリ秒)
+      timeout: 3000, // デフォルトのタイムアウト時間(ミリ秒)
       ...config,
     };
   }
@@ -42,7 +42,7 @@ class Talqu implements TTSService {
       await this.getVersion();
       // 起動していなくてもバージョンを返すため実際に動作することを確認する
       try {
-        await this.runCommandWithTimeout(`"${this.config.exePath}" getSpkName`);
+        await execPromise(`"${this.config.exePath}" getSpkName`, { timeout: this.config.timeout! });
         return true;
       } catch (error) {
         return false;
@@ -71,7 +71,7 @@ class Talqu implements TTSService {
     }
     try {
       // タイムアウトがないとフリーズの原因となるため、タイムアウト付きでコマンドを実行
-      const stdout = await this.runCommandWithTimeout(`"${this.config.exePath}" getSpkName`);
+      const { stdout } = await execPromise(`"${this.config.exePath}" getSpkName`, { timeout: this.config.timeout! });
       const speakerNames = stdout.trim().split(',');
       // JPTTSの形式に変換
       this.cache_speakers = speakerNames.map((name, index) => {
@@ -95,6 +95,7 @@ class Talqu implements TTSService {
       throw new Error('無効な話者IDです');
     }
     const speakerName = this.cache_speakers[speakerId]!.name;
+    console.log(`Using speaker: ${speakerName}`);
     const tempWavPath = path.join(os.tmpdir(), `talqu_${Date.now()}.wav`);
     try {
       // TALQuの合成コマンド実行
@@ -114,7 +115,9 @@ class Talqu implements TTSService {
         '', // refine_flag
       ];
       const commandStr = args.join(',');
-      await this.runCommandWithTimeout(`"${this.config.exePath}" synthesize ${commandStr}`);
+      console.log(`Running TALQu command: "${this.config.exePath}" ${commandStr}`);
+      const stdout = await execPromise(`"${this.config.exePath}" ${commandStr}`, { timeout: this.config.timeout });
+      console.log(`TALQu synthesize command output: ${stdout}`);
       // 生成された音声ファイルを読み込み
       const Buffer = await fs.readFile(tempWavPath);
       // ArrayBufferに変換
@@ -126,26 +129,6 @@ class Talqu implements TTSService {
     } catch (error) {
       throw new Error(`TALQuでの音声合成に失敗しました: ${error}`);
     }
-  }
-
-  // タイムアウト付きでコマンドを実行するヘルパー関数
-  private async runCommandWithTimeout(command: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const childProcess = exec(command, (error, stdout) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-        resolve(stdout.trim());
-      });
-      const timeout = setTimeout(() => {
-        childProcess.kill();
-        reject(new Error(`Command timed out: ${command}`));
-      }, this.config.timeout!);
-      childProcess.on('exit', () => {
-        clearTimeout(timeout);
-      });
-    });
   }
 }
 

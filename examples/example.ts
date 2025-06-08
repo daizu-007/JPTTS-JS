@@ -25,7 +25,7 @@ const config: JPTTSConfig = {
   },
   talqu: {
     exePath: 'C:/Applications/TALQu/TALQu_CMDClient.exe',
-    timeout: 5000, // タイムアウト時間を設定
+    timeout: 3000, // タイムアウト時間を設定
   },
 };
 // JPTTSのインスタンスを作成
