@@ -5,13 +5,16 @@ JPTTS.jsは、複数の合成音声サービスのAPIをラップし、シンプ
 ## 対応サービス
 - VOICEVOX
 - COEIROINK
+- TALQu
 
 ## TODO
 - 対応サービスの追加
-    - TALQu
     - AvisSpeech
     - StyleBertVits2
     - A.I. VOICE
+    - SAPI
+    - OpenAI
+    - Gemini
 - 合成できない音声の除去機能
 - 長い文字列を分割して合成する機能
 - 辞書機能
