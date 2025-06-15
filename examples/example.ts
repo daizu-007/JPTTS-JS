@@ -1,8 +1,7 @@
 // examples/example.ts
 
-import JPTTS from '../dist/index.js';
+import JPTTS, { JPTTSConfig, SpeechServices } from '../dist/index.js';
 import * as readline from 'readline';
-import { JPTTSConfig } from '../dist/types/service.js';
 
 // コマンドライン入力を受け取れるようにする
 const rl = readline.createInterface({
@@ -28,27 +27,34 @@ const config: JPTTSConfig = {
     timeout: 3000, // タイムアウト時間を設定
   },
 };
+// 使いたいサービスを指定
+const servicesToUse = [SpeechServices.VOICEVOX];
 // JPTTSのインスタンスを作成
 const jptts = new JPTTS(config);
 // 初期化を行う
 await jptts.init();
 // 利用可能なサービスを取得する
-const services = await jptts.fetchAvailableServices();
-console.log('Available services:', services);
+const availableServices = await jptts.fetchAvailableServices();
+console.log('Available services:', availableServices);
 // サービスを選択させる（正しいものを選ぶまで繰り返す）
-let service: string;
+let selectedService: SpeechServices;
 while (true) {
-  service = await input('Select a service: ');
-  if (services.includes(service)) {
-    console.log('Using service:', service);
+  const serviceInput = await input('Select a service: ');
+  const isValidService = Object.values(SpeechServices).includes(serviceInput as SpeechServices);
+  const isAvailable = availableServices.includes(serviceInput);
+  if (isValidService && isAvailable) {
+    selectedService = serviceInput as SpeechServices;
+    console.log('Using service:', selectedService);
     break;
-  } else {
-    console.error('Invalid service. Please select a valid service.');
+  } else if (!isValidService) {
+    console.error('Invalid service name. Please select a valid service.');
+  } else if (!isAvailable) {
+    console.error('Service not available. Please select a different service.');
   }
 }
 
 // 話者リストを取得する
-const speakers = await jptts.fetchSpeakers(service);
+const speakers = await jptts.fetchSpeakers(selectedService);
 console.log('Speakers:', JSON.stringify(speakers, null, 2));
 
 // 話者を選択させる（正しいものを選ぶまで繰り返す）
@@ -75,7 +81,7 @@ console.log('Using speaker ID:', speakerId);
 // 音声合成を行う
 const text = await input('Enter text to synthesize: ');
 console.log('Synthesizing text:', text);
-const result = await jptts.generate(text, speakerId, service);
+const result = await jptts.generate(text, speakerId, selectedService);
 // ファイルに保存する
 const outputFilePath = 'output.wav';
 await result.saveToFile(outputFilePath);

@@ -3,13 +3,21 @@
 
 import AudioResult from './utils/audioResult.js';
 import type { TTSService, ServiceConfig, JPTTSConfig } from './types/service.js';
-import fs from 'fs/promises';
-import path from 'path';
 
 // 利用可能なサービスを格納する型を定義
 type AvailableServicesMap = {
   [key: string]: TTSService;
 };
+
+// 利用可能なサービス一覧
+export enum SpeechServices {
+  VOICEVOX = 'voicevox',
+  COEIROINK = 'coeiroink',
+  TALQu = 'talqu',
+}
+
+// 型定義をエクスポート
+export type { ServiceConfig, JPTTSConfig };
 
 // メインとなるクラスを定義
 class JPTTS {
@@ -19,10 +27,13 @@ class JPTTS {
   private isInitialized: boolean = false;
   // 設定を格納する変数を定義
   private config: JPTTSConfig;
+  // 使用するサービスのリストを格納する変数を定義
+  private servicesToUse: Array<SpeechServices>;
 
   // Pythonでいうところの__init__メソッド
-  constructor(config: JPTTSConfig = {}) {
+  constructor(config: JPTTSConfig = {}, services: Array<SpeechServices> = Object.values(SpeechServices)) {
     this.config = config;
+    this.servicesToUse = services;
     // ここで初期化処理を行う
   }
 
@@ -32,35 +43,26 @@ class JPTTS {
     if (this.isInitialized) {
       return;
     }
-    const currentFilePath = new URL(import.meta.url).pathname; // 現在のファイルのパスを取得
-    const dirname = path.dirname(currentFilePath.replace(/^\//, ''));
-    const servicesDir = path.join(dirname, 'services');
-    try {
-      // servicesディレクトリ内のファイルを取得する
-      const files = await fs.readdir(servicesDir);
-      // 各サービスのモジュールをインポートする
-      for (const file of files) {
-        if (file.endsWith('.js') && file !== 'index.js') {
-          try {
-            const serviceName = file.replace('.js', '');
-            const serviceModule = await import(`./services/${file}`);
-            const serviceClass = serviceModule.default;
-            // Configを取得
-            const serviceConfig: ServiceConfig = this.config[serviceName] || {};
-            // サービスのインスタンスを作成
-            const serviceInstance = new serviceClass(serviceConfig);
-            // サービスが利用可能か確認する
-            const isAvailable = await serviceInstance.checkServerStatus();
-            if (isAvailable) {
-              this.availableServices[serviceName] = serviceInstance;
-            }
-          } catch (error) {
-            console.error(`Error loading service ${file}:`, error);
-          }
-        }
+    // 各サービスのモジュールをインポートする
+    for (const serviceName of this.servicesToUse) {
+      // サービス名が正しいか確認
+      if (!Object.values(SpeechServices).includes(serviceName)) {
+        throw new Error(`Invalid service name: ${serviceName}`);
       }
-    } catch (error) {
-      console.error('Error loading services:', error);
+      try {
+        const module = await import(`./services/${serviceName}.js`);
+        const serviceClass = module.default;
+        const serviceConfig: ServiceConfig = this.config[serviceName] || {};
+        // サービスのインスタンスを作成
+        const serviceInstance = new serviceClass(serviceConfig);
+        // サービスが利用可能か確認する
+        const isAvailable = await serviceInstance.checkServerStatus();
+        if (isAvailable) {
+          this.availableServices[serviceName] = serviceInstance;
+        }
+      } catch (error) {
+        console.error(`Error loading service ${serviceName}:`, error);
+      }
     }
     this.isInitialized = true;
   }
@@ -76,7 +78,7 @@ class JPTTS {
 
   // 話者リストを取得するメソッド
   async fetchSpeakers(
-    service: string,
+    service: SpeechServices,
     forceRefresh?: boolean
   ): Promise<Array<{ name: string; styles: Array<{ name: string; id: number }> }>> {
     if (!this.isInitialized) {
@@ -88,14 +90,14 @@ class JPTTS {
       speakers = await this.availableServices[service].fetchSpeakers(forceRefresh);
     } else {
       throw new Error(
-        'Invalid service specified. Available services are: ' + Object.keys(this.availableServices).join(', ')
+        `Invalid service specified: ${service}. Available services are: ${Object.keys(this.availableServices).join(', ')}`
       );
     }
     return speakers;
   }
 
   // 音声合成を行うメソッド
-  async generate(text: string, speaker: number, service: string): Promise<AudioResult> {
+  async generate(text: string, speaker: number, service: SpeechServices): Promise<AudioResult> {
     if (!this.isInitialized) {
       await this.init();
     }
@@ -104,7 +106,7 @@ class JPTTS {
     if (this.availableServices[service]) {
       audioData = await this.availableServices[service].tts(text, speaker);
     } else {
-      throw new Error('Invalid service specified');
+      throw new Error('Invalid service specified: ' + service);
     }
     return audioData;
   }

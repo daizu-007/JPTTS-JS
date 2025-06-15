@@ -7,7 +7,6 @@ import { promisify } from 'util';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
-import { error } from 'console';
 
 const execPromise = promisify(exec);
 
@@ -95,7 +94,6 @@ class Talqu implements TTSService {
       throw new Error('無効な話者IDです');
     }
     const speakerName = this.cache_speakers[speakerId]!.name;
-    console.log(`Using speaker: ${speakerName}`);
     const tempWavPath = path.join(os.tmpdir(), `talqu_${Date.now()}.wav`);
     try {
       // TALQuの合成コマンド実行
@@ -115,9 +113,7 @@ class Talqu implements TTSService {
         '', // refine_flag
       ];
       const commandStr = args.join(',');
-      console.log(`Running TALQu command: "${this.config.exePath}" ${commandStr}`);
       const stdout = await execPromise(`"${this.config.exePath}" ${commandStr}`, { timeout: this.config.timeout });
-      console.log(`TALQu synthesize command output: ${stdout}`);
       // 生成された音声ファイルを読み込み
       const Buffer = await fs.readFile(tempWavPath);
       // ArrayBufferに変換
