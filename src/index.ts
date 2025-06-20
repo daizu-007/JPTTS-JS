@@ -14,6 +14,7 @@ export enum SpeechServices {
   VOICEVOX = 'voicevox',
   COEIROINK = 'coeiroink',
   TALQu = 'talqu',
+  VOICEVOX_WEB = 'voicevox-web',
 }
 
 // 型定義をエクスポート

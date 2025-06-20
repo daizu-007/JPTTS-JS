@@ -26,9 +26,12 @@ const config: JPTTSConfig = {
     exePath: 'C:/Applications/TALQu/TALQu_CMDClient.exe',
     timeout: 3000, // タイムアウト時間を設定
   },
+  'voicevox-web': {
+    apiKey: process.env.VOICEVOX_WEB_API_KEY || '',
+  },
 };
 // 使いたいサービスを指定
-const servicesToUse = [SpeechServices.VOICEVOX];
+const servicesToUse = [SpeechServices.VOICEVOX_WEB];
 // JPTTSのインスタンスを作成
 const jptts = new JPTTS(config);
 // 初期化を行う
