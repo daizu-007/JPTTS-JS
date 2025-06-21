@@ -1,5 +1,6 @@
 // src/services/voicevox-web.ts
 
+import { URLSearchParams } from 'url';
 import AudioResult from '../utils/audioResult.js';
 import type { ServiceConfig, TTSService } from '@/types/service.js';
 
@@ -39,32 +40,26 @@ class VoiceVoxWeb implements TTSService {
     }
   }
 
-  // 音声合成用のクエリを作成する関数
-  async fetchAudioQuery(text: string, speaker: number): Promise<any> {
-    const url = `${this.config.baseUrl}/audio_query?text=${encodeURIComponent(text)}&speaker=${speaker}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    if (!response.ok) {
-      throw new Error(`API error in VOICEVOX's AudioQuery call: ${response.status}`);
-    }
-    return response.json(); // JSONレスポンスを取得
-  }
-
   // 音声合成を行う関数
-  async fetchAudioData(query: any, speaker: number): Promise<ArrayBuffer> {
-    const url = `${this.config.baseUrl}/synthesis?speaker=${speaker}`;
+  async fetchAudioData(text: string, speaker: number): Promise<ArrayBuffer> {
+    // APIキーが設定されていない場合はエラーを投げる
+    if (!this.config.apiKey) {
+      throw new Error('API key is required for VOICEVOX Web service.');
+    }
+    const url = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?speaker=${speaker}`;
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify(query),
+      body: new URLSearchParams({
+        text: text,
+        key: this.config.apiKey,
+      }),
     });
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error response from VOICEVOX:', errorText);
       throw new Error(`API error in VOICEVOX's SynthesisAudio call: ${response.status}`);
     }
     return response.arrayBuffer(); // バイナリデータをArrayBufferとして取得
@@ -78,6 +73,10 @@ class VoiceVoxWeb implements TTSService {
     // キャッシュがある場合はそれを返す
     if (this.cache_speakers !== null && !shouldForceRefresh) {
       return this.cache_speakers;
+    }
+    // APIキーが設定されていない場合はエラーを投げる
+    if (!this.config.apiKey) {
+      throw new Error('API key is required for VOICEVOX Web service.');
     }
     // キャッシュがない場合はAPIを呼び出す
     const url = `https://deprecatedapis.tts.quest/v2/voicevox/speakers/?key=${this.config.apiKey}`;
@@ -113,8 +112,7 @@ class VoiceVoxWeb implements TTSService {
 
   // 音声合成エンドポイント
   async tts(text: string, speaker: number): Promise<AudioResult> {
-    const audioQuery = await this.fetchAudioQuery(text, speaker);
-    const audioData = await this.fetchAudioData(audioQuery, speaker);
+    const audioData = await this.fetchAudioData(text, speaker);
     return new AudioResult(audioData); // AudioResultクラスのインスタンスを返す
   }
 }
