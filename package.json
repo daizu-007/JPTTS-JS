@@ -34,5 +34,8 @@
     "format": "prettier --write .",
     "clean": "rm -rf dist",
     "e2e": "bun examples/example.ts"
+  },
+  "dependencies": {
+    "winax": "^3.6.2"
   }
 }
