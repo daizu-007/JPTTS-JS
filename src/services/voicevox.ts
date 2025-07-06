@@ -2,6 +2,7 @@
 
 import AudioResult from '../utils/audioResult.js';
 import type { ServiceConfig, TTSService } from '@/types/service.js';
+import type { Speakers } from '@/types/speaker.js';
 
 // VOICEVOXのクラス
 class VoiceVox implements TTSService {
@@ -12,10 +13,7 @@ class VoiceVox implements TTSService {
   // コンフィグを格納する変数
   private config: ServiceConfig;
   // キャッシュを格納する変数
-  private cache_speakers: Array<{
-    name: string;
-    styles: Array<{ name: string; id: number }>;
-  }> | null = null;
+  private cache_speakers: Speakers | null = null;
 
   constructor(config: ServiceConfig = {}) {
     this.config = {
@@ -80,9 +78,7 @@ class VoiceVox implements TTSService {
   }
 
   // 話者のリストを取得する関数
-  async fetchSpeakers(
-    forceRefresh?: boolean
-  ): Promise<Array<{ name: string; styles: Array<{ name: string; id: number }> }>> {
+  async fetchSpeakers(forceRefresh?: boolean): Promise<Speakers> {
     const shouldForceRefresh = forceRefresh ?? false;
     // キャッシュがある場合はそれを返す
     if (this.cache_speakers !== null && !shouldForceRefresh) {
@@ -106,7 +102,8 @@ class VoiceVox implements TTSService {
       version: string;
       supported_features: { permitted_synthesis_morphing: string };
     }>;
-    const speakers: Array<{ name: string; styles: Array<{ name: string; id: number }> }> = [];
+    const speakers: Array<{ id: number; name: string; styles: Array<{ name: string; id: number }> }> = [];
+    let id = 0; // IDを振るためのカウンター
     speakersResponse.forEach((speaker) => {
       const styles: Array<{ name: string; id: number }> = [];
       speaker.styles.forEach((style) => {
@@ -116,6 +113,7 @@ class VoiceVox implements TTSService {
         });
       });
       speakers.push({
+        id: id++, // IDを振る
         name: speaker.name,
         styles: styles,
       });
@@ -125,8 +123,23 @@ class VoiceVox implements TTSService {
     return speakers;
   }
 
+  // 最適なスタイルを選択する関数
+  private async selectBestStyle(speaker: number): Promise<number> {
+    // スピーカーのスタイルを取得
+    const speakers = await this.fetchSpeakers();
+    const speakerStyles = speakers.find((s) => s.id === speaker)?.styles;
+    if (!speakerStyles || speakerStyles.length === 0) {
+      throw new Error(`Speaker with ID ${speaker} does not have any styles available.`);
+    }
+    // デフォルトのスタイルを返す
+    return speakerStyles[0]!.id;
+  }
+
   // 音声合成エンドポイント
-  async tts(text: string, speaker: number): Promise<AudioResult> {
+  async tts(text: string, speaker: number, style: number | undefined): Promise<AudioResult> {
+    if (!style) {
+      style = await this.selectBestStyle(speaker); // スタイルが指定されていない場合は最適なスタイルを選択
+    }
     const audioQuery = await this.fetchAudioQuery(text, speaker);
     const audioData = await this.fetchAudioData(audioQuery, speaker);
     return new AudioResult(audioData); // AudioResultクラスのインスタンスを返す

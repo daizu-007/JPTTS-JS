@@ -3,6 +3,7 @@
 
 import AudioResult from './utils/audioResult.js';
 import type { TTSService, ServiceConfig, JPTTSConfig } from './types/service.js';
+import type { Speakers } from './types/speaker.js';
 
 // 利用可能なサービスを格納する型を定義
 type AvailableServicesMap = {
@@ -78,14 +79,11 @@ class JPTTS {
   }
 
   // 話者リストを取得するメソッド
-  async fetchSpeakers(
-    service: SpeechServices,
-    forceRefresh?: boolean
-  ): Promise<Array<{ name: string; styles: Array<{ name: string; id: number }> }>> {
+  async fetchSpeakers(service: SpeechServices, forceRefresh?: boolean): Promise<Speakers> {
     if (!this.isInitialized) {
       await this.init(); // 初期化が完了していない場合は初期化を行う
     }
-    let speakers: Array<{ name: string; styles: Array<{ name: string; id: number }> }> | null = null;
+    let speakers: Speakers;
     // 指定されたサービスに応じて話者リストを取得する
     if (this.availableServices[service]) {
       speakers = await this.availableServices[service].fetchSpeakers(forceRefresh);
@@ -98,14 +96,14 @@ class JPTTS {
   }
 
   // 音声合成を行うメソッド
-  async generate(text: string, speaker: number, service: SpeechServices): Promise<AudioResult> {
+  async generate(text: string, speaker: number, service: SpeechServices, style?: number): Promise<AudioResult> {
     if (!this.isInitialized) {
       await this.init();
     }
     let audioData: AudioResult;
     // 指定されたサービスに応じて音声合成を行う
     if (this.availableServices[service]) {
-      audioData = await this.availableServices[service].tts(text, speaker);
+      audioData = await this.availableServices[service].tts(text, speaker, style);
     } else {
       throw new Error('Invalid service specified: ' + service);
     }
