@@ -2,6 +2,7 @@
 
 import AudioResult from '../utils/audioResult.js';
 import type { ServiceConfig, TTSService } from '@/types/service.js';
+import type { Speakers } from '@/types/speaker.js';
 
 // COEIROINKのクラス
 class Coeiroink implements TTSService {
@@ -12,11 +13,7 @@ class Coeiroink implements TTSService {
   // コンフィグを格納する変数
   private config: ServiceConfig;
   // キャッシュを格納する変数
-  private cache_speakers: Array<{
-    uuid: string;
-    name: string;
-    styles: Array<{ name: string; id: number }>;
-  }> | null = null;
+  private cache_speakers: Speakers | null = null;
 
   constructor(config: ServiceConfig = {}) {
     this.config = {
@@ -50,20 +47,8 @@ class Coeiroink implements TTSService {
   }
 
   // 音声合成を行う関数
-  async fetchAudioData(text: string, speaker: number): Promise<ArrayBuffer> {
+  async fetchAudioData(text: string, speaker: string, style: string): Promise<ArrayBuffer> {
     const url = `${this.config.baseUrl}/v1/predict`;
-    // Combined IDの先頭'1'を削除し，UUID部分とstyleId部分に分割
-    const idStr = speaker.toString().slice(1);
-    const speakerList = await this.getSpeakers();
-    const uuidLength = speakerList.length.toString().length;
-    const index = Number(idStr.slice(0, uuidLength));
-    const styleId = Number(idStr.slice(uuidLength));
-    let speaker_uuid = '';
-    if (speakerList[index]) {
-      speaker_uuid = speakerList[index].uuid;
-    } else {
-      console.error(`Speaker not found: ${speaker}`);
-    }
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -71,8 +56,8 @@ class Coeiroink implements TTSService {
       },
       body: JSON.stringify({
         text: text,
-        speakerUuid: speaker_uuid,
-        styleId: styleId,
+        speakerUuid: speaker,
+        styleId: style,
         speedScale: 1,
       }),
     });
@@ -83,10 +68,7 @@ class Coeiroink implements TTSService {
   }
 
   // 話者のリストを取得する関数
-  // 公開しない
-  async getSpeakers(
-    forceRefresh?: boolean
-  ): Promise<Array<{ uuid: string; name: string; styles: Array<{ name: string; id: number }> }>> {
+  async fetchSpeakers(forceRefresh?: boolean): Promise<Speakers> {
     const shouldForceRefresh = forceRefresh ?? false;
     // キャッシュがある場合はそれを返す
     if (this.cache_speakers !== null && !shouldForceRefresh) {
@@ -115,19 +97,13 @@ class Coeiroink implements TTSService {
       version: string;
       base64Portrait: string;
     }>;
-    // 数値のみのUUIDを独自に生成する
-    const uuidLength = speakersResponse.length.toString().length; // 何桁あれば重複しないかを計算
-    let x = 0;
-    const speakers: Array<{ uuid: string; name: string; styles: Array<{ name: string; id: number }> }> = [];
+    const speakers: Array<{ uuid: string; name: string; styles: Array<{ name: string; uuid: string }> }> = [];
     speakersResponse.forEach((speaker) => {
-      const uuid = x.toString().padStart(uuidLength, '0');
-      x += 1;
-      const styles: Array<{ name: string; id: number }> = [];
+      const styles: Array<{ name: string; uuid: string }> = [];
       speaker.styles.forEach((style) => {
-        const id = parseInt('1' + uuid + style.styleId.toString()); // UUIDとStyleIDを結合して数値に変換
         styles.push({
           name: style.styleName,
-          id: id,
+          uuid: style.styleId.toString(),
         });
       });
       speakers.push({
@@ -141,20 +117,24 @@ class Coeiroink implements TTSService {
     return speakers;
   }
 
-  // 公開用のfetchSpeakers関数
-  async fetchSpeakers(
-    forceRefresh?: boolean
-  ): Promise<Array<{ name: string; styles: Array<{ name: string; id: number }> }>> {
-    const speakers = await this.getSpeakers(forceRefresh);
-    return speakers.map((speaker) => ({
-      name: speaker.name,
-      styles: speaker.styles,
-    }));
+  // 最適なスタイルを選択する関数
+  private async selectBestStyle(speaker: string): Promise<string> {
+    // スピーカーのスタイルを取得
+    const speakers = await this.fetchSpeakers();
+    const speakerStyles = speakers.find((s) => s.uuid === speaker)?.styles;
+    if (!speakerStyles || speakerStyles.length === 0) {
+      throw new Error(`No styles found for speaker ${speaker}`);
+    }
+    // 最初のスタイルを返す（必要に応じてロジックを変更可能）
+    return speakerStyles[0]!.uuid;
   }
 
   // 音声合成エンドポイント
-  async tts(text: string, speaker: number): Promise<AudioResult> {
-    const audioData = await this.fetchAudioData(text, speaker);
+  async tts(text: string, speaker: string, style: string | undefined): Promise<AudioResult> {
+    if (!style) {
+      style = await this.selectBestStyle(speaker); // スタイルが指定されていない場合は最適なスタイルを選択
+    }
+    const audioData = await this.fetchAudioData(text, speaker, style);
     return new AudioResult(audioData); // AudioResultクラスのインスタンスを返す
   }
 }

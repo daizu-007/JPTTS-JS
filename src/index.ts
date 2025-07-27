@@ -96,7 +96,7 @@ class JPTTS {
   }
 
   // 音声合成を行うメソッド
-  async generate(text: string, speaker: number, service: SpeechServices, style?: number): Promise<AudioResult> {
+  async generate(text: string, speaker: string, service: SpeechServices, style?: string): Promise<AudioResult> {
     if (!this.isInitialized) {
       await this.init();
     }

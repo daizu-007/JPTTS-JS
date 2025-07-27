@@ -21,7 +21,7 @@ export type JPTTSConfig = {
 export interface TTSService {
   serviceName: string; // サービス名
   getConfig: () => ServiceConfig; // サービスの設定を取得するメソッド
-  tts: (text: string, speaker: number, style: number | undefined) => Promise<AudioResult>; // 音声合成メソッド
+  tts: (text: string, speaker: string, style: string | undefined) => Promise<AudioResult>; // 音声合成メソッド
   fetchSpeakers: (forceRefresh?: boolean) => Promise<Speakers>; // 話者リスト取得メソッド
   checkServerStatus: () => Promise<boolean>; // サーバーの状態確認メソッド
 }

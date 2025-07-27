@@ -47,8 +47,9 @@ class VoiceVox implements TTSService {
   }
 
   // 音声合成用のクエリを作成する関数
-  async fetchAudioQuery(text: string, speaker: number): Promise<any> {
-    const url = `${this.config.baseUrl}/audio_query?text=${encodeURIComponent(text)}&speaker=${speaker}`;
+  async fetchAudioQuery(text: string, speaker: string, style: string): Promise<any> {
+    const voiceId = await this.generateUrlId(speaker, style);
+    const url = `${this.config.baseUrl}/audio_query?text=${encodeURIComponent(text)}&speaker=${voiceId}`;
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -62,8 +63,9 @@ class VoiceVox implements TTSService {
   }
 
   // 音声合成を行う関数
-  async fetchAudioData(query: any, speaker: number): Promise<ArrayBuffer> {
-    const url = `${this.config.baseUrl}/synthesis?speaker=${speaker}`;
+  async fetchAudioData(query: any, speaker: string, style: string): Promise<ArrayBuffer> {
+    const voiceId = await this.generateUrlId(speaker, style);
+    const url = `${this.config.baseUrl}/synthesis?speaker=${voiceId}`;
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -102,21 +104,22 @@ class VoiceVox implements TTSService {
       version: string;
       supported_features: { permitted_synthesis_morphing: string };
     }>;
-    const speakers: Array<{ id: number; name: string; styles: Array<{ name: string; id: number }> }> = [];
+    const speakers: Speakers = [];
     let id = 0; // IDを振るためのカウンター
     speakersResponse.forEach((speaker) => {
-      const styles: Array<{ name: string; id: number }> = [];
+      const styles: Array<{ name: string; uuid: string }> = [];
       speaker.styles.forEach((style) => {
         styles.push({
           name: style.name,
-          id: style.id,
+          uuid: style.id.toString(),
         });
       });
       speakers.push({
-        id: id++, // IDを振る
+        uuid: id.toString(),
         name: speaker.name,
         styles: styles,
       });
+      id += 1; // IDをインクリメント
     });
     // キャッシュに保存
     this.cache_speakers = speakers;
@@ -124,24 +127,44 @@ class VoiceVox implements TTSService {
   }
 
   // 最適なスタイルを選択する関数
-  private async selectBestStyle(speaker: number): Promise<number> {
+  private async selectBestStyle(speaker: string): Promise<string> {
     // スピーカーのスタイルを取得
     const speakers = await this.fetchSpeakers();
-    const speakerStyles = speakers.find((s) => s.id === speaker)?.styles;
+    const speakerStyles = speakers.find((s) => s.uuid === speaker)?.styles;
     if (!speakerStyles || speakerStyles.length === 0) {
       throw new Error(`Speaker with ID ${speaker} does not have any styles available.`);
     }
     // デフォルトのスタイルを返す
-    return speakerStyles[0]!.id;
+    return speakerStyles[0]!.uuid;
+  }
+
+  // 話者IDとスタイルIDからURL用のIDを生成する関数
+  private async generateUrlId(speaker: string, style: string): Promise<string> {
+    const speakerObjects = await this.fetchSpeakers();
+    const speakerObject = speakerObjects.find((s) => s.uuid === speaker);
+    if (!speakerObject) {
+      throw new Error(`Speaker with ID ${speaker} not found.`);
+    }
+    const voiceId = speakerObject.styles.find((s) => s.uuid === style)?.uuid;
+    if (!voiceId) {
+      throw new Error(`Style with ID ${style} not found for speaker ${speakerObject.name}.`);
+    }
+    return voiceId.toString();
   }
 
   // 音声合成エンドポイント
-  async tts(text: string, speaker: number, style: number | undefined): Promise<AudioResult> {
+  async tts(text: string, speaker: string, style: string | undefined): Promise<AudioResult> {
+    const speakerList = await this.fetchSpeakers();
+    if (!speakerList.some((s) => s.uuid === speaker)) {
+      throw new Error(
+        `Invalid speaker ID: ${speaker}. Available speakers are: ${speakerList.map((s) => s.uuid).join(', ')}`
+      );
+    }
     if (!style) {
       style = await this.selectBestStyle(speaker); // スタイルが指定されていない場合は最適なスタイルを選択
     }
-    const audioQuery = await this.fetchAudioQuery(text, speaker);
-    const audioData = await this.fetchAudioData(audioQuery, speaker);
+    const audioQuery = await this.fetchAudioQuery(text, speaker, style);
+    const audioData = await this.fetchAudioData(audioQuery, speaker, style);
     return new AudioResult(audioData); // AudioResultクラスのインスタンスを返す
   }
 }

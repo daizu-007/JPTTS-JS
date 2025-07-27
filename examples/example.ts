@@ -61,7 +61,7 @@ const speakers = await jptts.fetchSpeakers(selectedService);
 console.log('Speakers:', JSON.stringify(speakers, null, 2));
 
 // 話者を選択させる（正しいものを選ぶまで繰り返す）
-let speaker: { name: string; styles: { id: number }[] } | undefined;
+let speaker: { uuid: string; name: string; styles: { name: string; uuid: string }[] } | undefined;
 while (true) {
   const speakerName = await input('Select a speaker: ');
   speaker = speakers.find((s) => s.name === speakerName);
@@ -73,18 +73,10 @@ while (true) {
   }
 }
 
-// スタイルを取得
-const style = speaker.styles[0];
-if (!style) {
-  console.error('No available speaker ID found.');
-  process.exit(1);
-}
-const speakerId = style.id;
-console.log('Using speaker ID:', speakerId);
 // 音声合成を行う
 const text = await input('Enter text to synthesize: ');
 console.log('Synthesizing text:', text);
-const result = await jptts.generate(text, speakerId, selectedService);
+const result = await jptts.generate(text, speaker.uuid, selectedService);
 // ファイルに保存する
 const outputFilePath = 'output.wav';
 await result.saveToFile(outputFilePath);

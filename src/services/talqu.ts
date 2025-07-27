@@ -7,6 +7,7 @@ import { promisify } from 'util';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
+import type { Speakers } from '@/types/speaker.js';
 
 const execPromise = promisify(exec);
 
@@ -17,10 +18,7 @@ class Talqu implements TTSService {
   // コンフィグを格納する変数
   private config: ServiceConfig;
   // キャッシュを格納する変数
-  private cache_speakers: Array<{
-    name: string;
-    styles: Array<{ name: string; id: number }>;
-  }> | null = null;
+  private cache_speakers: Speakers | null = null;
 
   constructor(config: ServiceConfig = {}) {
     this.config = {
@@ -62,9 +60,7 @@ class Talqu implements TTSService {
   }
 
   // 話者リストを取得
-  async fetchSpeakers(
-    forceRefresh = false
-  ): Promise<Array<{ name: string; styles: Array<{ name: string; id: number }> }>> {
+  async fetchSpeakers(forceRefresh = false): Promise<Speakers> {
     if (this.cache_speakers && !forceRefresh) {
       return this.cache_speakers;
     }
@@ -75,8 +71,9 @@ class Talqu implements TTSService {
       // JPTTSの形式に変換
       this.cache_speakers = speakerNames.map((name, index) => {
         return {
-          name,
-          styles: [{ name: 'デフォルト', id: index }],
+          name: name.trim(),
+          uuid: index.toString(), // IDはインデックスを文字列に変換
+          styles: [{ name: 'デフォルト', uuid: 'default' }],
         };
       });
       return this.cache_speakers;
@@ -86,14 +83,12 @@ class Talqu implements TTSService {
   }
 
   // 音声合成
-  async tts(text: string, speakerId: number): Promise<AudioResult> {
+  async tts(text: string, speakerId: string, style: string | undefined): Promise<AudioResult> {
+    const speakerList = await this.fetchSpeakers();
     if (!this.cache_speakers) {
       await this.fetchSpeakers();
     }
-    if (!this.cache_speakers || speakerId >= this.cache_speakers.length) {
-      throw new Error('無効な話者IDです');
-    }
-    const speakerName = this.cache_speakers[speakerId]!.name;
+    const speakerName = speakerList.find((s) => s.uuid === speakerId)!.name;
     const tempWavPath = path.join(os.tmpdir(), `talqu_${Date.now()}.wav`);
     try {
       // TALQuの合成コマンド実行

@@ -1,10 +1,10 @@
 // types/speaker.ts
 
 export type Speakers = Array<{
-  id: number;
+  uuid: string;
   name: string;
   styles: Array<{
     name: string;
-    id: number;
+    uuid: string;
   }>;
 }>;
