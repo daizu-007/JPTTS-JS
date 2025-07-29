@@ -33,7 +33,7 @@ class Talqu implements TTSService {
   }
 
   // 動作しているか確認する関数
-  async checkServerStatus(): Promise<boolean> {
+  async checkServiceStatus(): Promise<boolean> {
     try {
       await fs.access(this.config.exePath!);
       await this.getVersion();

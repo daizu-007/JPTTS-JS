@@ -58,7 +58,7 @@ class JPTTS {
         // サービスのインスタンスを作成
         const serviceInstance = new serviceClass(serviceConfig);
         // サービスが利用可能か確認する
-        const isAvailable = await serviceInstance.checkServerStatus();
+        const isAvailable = await serviceInstance.checkServiceStatus();
         if (isAvailable) {
           this.availableServices[serviceName] = serviceInstance;
         }

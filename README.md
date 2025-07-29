@@ -15,8 +15,8 @@ JPTTS.jsは、複数の合成音声サービスのAPIをラップし、シンプ
     - SAPI
     - OpenAI
     - Gemini
+    - Avis Cloud API
 - 合成できない音声の除去機能
 - 長い文字列を分割して合成する機能
 - 辞書機能
-- CheckServerStatusをCheckServiceStatusに変更
 - 存在しない話者を選択した場合のエラーハンドリング
