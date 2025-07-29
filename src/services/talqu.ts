@@ -104,7 +104,8 @@ class Talqu implements TTSService {
     try {
       // タイムアウトがないとフリーズの原因となるため、タイムアウト付きでコマンドを実行
       const { stdout } = await execPromise(`"${this.config.exePath}" getSpkName`, { timeout: this.config.timeout! });
-      const speakerNames = stdout.trim().split(',');
+      const stdoutWithoutLog = await this.extractTalquReturn(stdout);
+      const speakerNames = stdoutWithoutLog.trim().split(',');
       // JPTTSの形式に変換
       this.cache_speakers = speakerNames.map((name, index) => {
         return {
@@ -117,6 +118,16 @@ class Talqu implements TTSService {
     } catch (error) {
       throw new Error(`TALQuから話者リストを取得できません: ${error}`);
     }
+  }
+
+  // TALQuの出力からログを排除する関数
+  async extractTalquReturn(log: string): Promise<string> {
+    const marker = 'TALQu_Return:';
+    const markerIndex = log.indexOf(marker);
+    if (markerIndex === -1) {
+      return ''; // マーカーが見つからない場合は空文字を返す
+    }
+    return log.slice(markerIndex + marker.length).trim();
   }
 
   // 音声合成エンドポイント
