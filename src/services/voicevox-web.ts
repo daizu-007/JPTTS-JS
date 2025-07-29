@@ -121,8 +121,10 @@ class VoiceVoxWeb implements TTSService {
   // 音声合成エンドポイント
   async tts(text: string, speaker: string, style: string | undefined): Promise<AudioResult> {
     const speakerList = await this.fetchSpeakers();
-    if (!speakerList.some((s) => s.name === speaker)) {
-      throw new Error(`Speaker not found: ${speaker}`);
+    if (!speakerList.some((s) => s.uuid === speaker)) {
+      // 利用可能な話者一覧（名前とuuid）をエラーに表示
+      const availableSpeakers = speakerList.map((s) => `${s.uuid} (name: ${s.name})`).join(', ');
+      throw new Error(`Invalid speaker ID: ${speaker}. Available speakers are: ${availableSpeakers}`);
     }
     if (!style) {
       style = await this.selectBestStyle(speaker); // スタイルが指定されていない場合は最適なスタイルを選択

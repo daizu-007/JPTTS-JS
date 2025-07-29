@@ -156,9 +156,9 @@ class VoiceVox implements TTSService {
   async tts(text: string, speaker: string, style: string | undefined): Promise<AudioResult> {
     const speakerList = await this.fetchSpeakers();
     if (!speakerList.some((s) => s.uuid === speaker)) {
-      throw new Error(
-        `Invalid speaker ID: ${speaker}. Available speakers are: ${speakerList.map((s) => s.uuid).join(', ')}`
-      );
+      // 利用可能な話者一覧（名前とuuid）をエラーに表示
+      const availableSpeakers = speakerList.map((s) => `${s.uuid} (name: ${s.name})`).join(', ');
+      throw new Error(`Invalid speaker ID: ${speaker}. Available speakers are: ${availableSpeakers}`);
     }
     if (!style) {
       style = await this.selectBestStyle(speaker); // スタイルが指定されていない場合は最適なスタイルを選択
