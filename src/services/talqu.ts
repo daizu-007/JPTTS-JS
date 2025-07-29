@@ -49,6 +49,43 @@ class Talqu implements TTSService {
     }
   }
 
+  // 音声合成を行う関数
+  async fetchAudioData(text: string, speaker: string): Promise<ArrayBuffer> {
+    const speakerList = await this.fetchSpeakers();
+    const speakerName = speakerList.find((s) => s.uuid === speaker)!.name;
+    const tempWavPath = path.join(os.tmpdir(), `talqu_${Date.now()}.wav`);
+    try {
+      // TALQuの合成コマンド実行
+      const args = [
+        speakerName,
+        tempWavPath,
+        text,
+        '', // pronunciation
+        '', // play_flag
+        '', // speech_speed
+        '', // intonation
+        '', // pitch_model
+        '', // short_pause
+        '', // long_pause
+        '', // pitch
+        '', // formant
+        '', // refine_flag
+      ];
+      const commandStr = args.join(',');
+      const stdout = await execPromise(`"${this.config.exePath}" ${commandStr}`, { timeout: this.config.timeout });
+      // 生成された音声ファイルを読み込み
+      const Buffer = await fs.readFile(tempWavPath);
+      // ArrayBufferに変換
+      const u8 = new Uint8Array(Buffer);
+      const arrayBuffer = u8.buffer;
+      // 一時ファイルを削除
+      await fs.unlink(tempWavPath).catch((e) => console.error('一時ファイル削除エラー:', e));
+      return arrayBuffer;
+    } catch (error) {
+      throw new Error(`TALQuでの音声合成に失敗しました: ${error}`);
+    }
+  }
+
   // バージョンを取得する関数
   async getVersion(): Promise<string> {
     try {
@@ -82,44 +119,10 @@ class Talqu implements TTSService {
     }
   }
 
-  // 音声合成
-  async tts(text: string, speakerId: string, style: string | undefined): Promise<AudioResult> {
-    const speakerList = await this.fetchSpeakers();
-    if (!this.cache_speakers) {
-      await this.fetchSpeakers();
-    }
-    const speakerName = speakerList.find((s) => s.uuid === speakerId)!.name;
-    const tempWavPath = path.join(os.tmpdir(), `talqu_${Date.now()}.wav`);
-    try {
-      // TALQuの合成コマンド実行
-      const args = [
-        speakerName,
-        tempWavPath,
-        text,
-        '', // pronunciation
-        '', // play_flag
-        '', // speech_speed
-        '', // intonation
-        '', // pitch_model
-        '', // short_pause
-        '', // long_pause
-        '', // pitch
-        '', // formant
-        '', // refine_flag
-      ];
-      const commandStr = args.join(',');
-      const stdout = await execPromise(`"${this.config.exePath}" ${commandStr}`, { timeout: this.config.timeout });
-      // 生成された音声ファイルを読み込み
-      const Buffer = await fs.readFile(tempWavPath);
-      // ArrayBufferに変換
-      const u8 = new Uint8Array(Buffer);
-      const arrayBuffer = u8.buffer;
-      // 一時ファイルを削除
-      await fs.unlink(tempWavPath).catch((e) => console.error('一時ファイル削除エラー:', e));
-      return new AudioResult(arrayBuffer);
-    } catch (error) {
-      throw new Error(`TALQuでの音声合成に失敗しました: ${error}`);
-    }
+  // 音声合成エンドポイント
+  async tts(text: string, speaker: string, style: string | undefined): Promise<AudioResult> {
+    const audioData = await this.fetchAudioData(text, speaker);
+    return new AudioResult(audioData);
   }
 }
 
