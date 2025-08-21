@@ -16,6 +16,7 @@ export enum SpeechServices {
   COEIROINK = 'coeiroink',
   TALQu = 'talqu',
   VOICEVOX_WEB = 'voicevox-web',
+  ASSISTANT_SEIKA = 'assistant-seika',
 }
 
 // 型定義をエクスポート

@@ -29,11 +29,14 @@ const config: JPTTSConfig = {
   'voicevox-web': {
     apiKey: process.env.VOICEVOX_WEB_API_KEY || '',
   },
+  'assistant-seika': {
+    exePath: 'C:/Applications/AssistantSeika/assistantseika20250113a/SeikaSay2/SeikaSay2.exe',
+  },
 };
 // 使いたいサービスを指定
 const servicesToUse = [SpeechServices.VOICEVOX_WEB];
 // JPTTSのインスタンスを作成
-const jptts = new JPTTS(config);
+const jptts = new JPTTS(config, servicesToUse);
 // 初期化を行う
 await jptts.init();
 // 利用可能なサービスを取得する

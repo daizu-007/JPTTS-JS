@@ -39,12 +39,12 @@ class VoiceVoxWeb implements TTSService {
   }
 
   // 音声合成を行う関数
-  async fetchAudioData(text: string, speaker: string, style: string): Promise<ArrayBuffer> {
+  async fetchAudioData(text: string, style: string): Promise<ArrayBuffer> {
     // APIキーが設定されていない場合はエラーを投げる
     if (!this.config.apiKey) {
       throw new Error('API key is required for VOICEVOX Web service.');
     }
-    const url = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?speaker=${speaker}`;
+    const url = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?speaker=${style}`;
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -110,12 +110,12 @@ class VoiceVoxWeb implements TTSService {
   // 最適なスタイルを選択する関数
   async selectBestStyle(speaker: string): Promise<string> {
     const speakers = await this.fetchSpeakers();
-    const speakerData = speakers.find((s) => s.name === speaker);
+    const speakerData = speakers.find((s) => s.uuid === speaker);
     if (!speakerData || speakerData.styles.length === 0) {
       throw new Error(`No styles available for speaker: ${speaker}`);
     }
     // デフォルトのスタイルを返す
-    return speakerData.styles[0]!.name;
+    return speakerData.styles[0]!.uuid;
   }
 
   // 音声合成エンドポイント
@@ -129,7 +129,7 @@ class VoiceVoxWeb implements TTSService {
     if (!style) {
       style = await this.selectBestStyle(speaker); // スタイルが指定されていない場合は最適なスタイルを選択
     }
-    const audioData = await this.fetchAudioData(text, speaker, style);
+    const audioData = await this.fetchAudioData(text, style);
     return new AudioResult(audioData); // AudioResultクラスのインスタンスを返す
   }
 }

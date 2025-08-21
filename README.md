@@ -6,6 +6,7 @@ JPTTS.jsは、複数の合成音声サービスのAPIをラップし、シンプ
 - VOICEVOX
 - COEIROINK
 - TALQu
+- Web版 VOICEVOX
 
 ## TODO
 - 対応サービスの追加
