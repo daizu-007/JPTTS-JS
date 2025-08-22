@@ -7,6 +7,7 @@ JPTTS.jsは、複数の合成音声サービスのAPIをラップし、シンプ
 - COEIROINK
 - TALQu
 - Web版 VOICEVOX
+- Assistant Seika(音声合成エンジン連携ツール)
 
 ## TODO
 - 対応サービスの追加

@@ -34,7 +34,7 @@ const config: JPTTSConfig = {
   },
 };
 // 使いたいサービスを指定
-const servicesToUse = [SpeechServices.VOICEVOX_WEB];
+const servicesToUse = [SpeechServices.VOICEVOX_WEB, SpeechServices.ASSISTANT_SEIKA];
 // JPTTSのインスタンスを作成
 const jptts = new JPTTS(config, servicesToUse);
 // 初期化を行う
