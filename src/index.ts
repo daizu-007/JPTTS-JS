@@ -4,6 +4,10 @@
 import AudioResult from './utils/audioResult.js';
 import type { TTSService, ServiceConfig, JPTTSConfig } from './types/service.js';
 import type { Speakers } from './types/speaker.js';
+import TextProcessor from './utils/textProcessor.js';
+
+// テキスト処理用のインスタンスを作成
+export const textProcessor = new TextProcessor();
 
 // 利用可能なサービスを格納する型を定義
 type AvailableServicesMap = {
