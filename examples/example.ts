@@ -2,6 +2,8 @@
 
 import JPTTS, { JPTTSConfig, SpeechServices } from '../dist/index.js';
 import * as readline from 'readline';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // コマンドライン入力を受け取れるようにする
 const rl = readline.createInterface({
@@ -17,6 +19,16 @@ function input(prompt: string): Promise<string> {
   });
 }
 
+// outputディレクトリがなければ作成
+const outputDir = path.join(process.cwd(), 'output');
+if (!fs.existsSync(outputDir)) {
+  fs.mkdirSync(outputDir);
+}
+// outputディレクトリの中身を削除
+fs.readdirSync(outputDir).forEach((file) => {
+  fs.unlinkSync(path.join(outputDir, file));
+});
+
 // コンフィグを設定
 const config: JPTTSConfig = {
   voicevox: {
@@ -24,7 +36,7 @@ const config: JPTTSConfig = {
   },
   talqu: {
     exePath: 'C:/Applications/TALQu/TALQu_CMDClient.exe',
-    timeout: 3000, // タイムアウト時間を設定
+    timeout: 30000, // タイムアウト時間を設定
   },
   'voicevox-web': {
     apiKey: process.env.VOICEVOX_WEB_API_KEY || '',
@@ -36,7 +48,7 @@ const config: JPTTSConfig = {
 // 使いたいサービスを指定
 const servicesToUse = [SpeechServices.VOICEVOX_WEB, SpeechServices.ASSISTANT_SEIKA];
 // JPTTSのインスタンスを作成
-const jptts = new JPTTS(config, servicesToUse);
+const jptts = new JPTTS(config);
 // 初期化を行う
 await jptts.init();
 // 利用可能なサービスを取得する
@@ -75,15 +87,18 @@ while (true) {
     console.error('Speaker not found. Please select a valid speaker.');
   }
 }
-
 // 音声合成を行う
 const text = await input('Enter text to synthesize: ');
 console.log('Synthesizing text:', text);
-const result = await jptts.generate(text, speaker.uuid, selectedService);
-// ファイルに保存する
-const outputFilePath = 'output.wav';
-await result.saveToFile(outputFilePath);
-console.log(`Audio saved to ${outputFilePath}`);
+const result = await jptts.synthesizeStream(text, speaker.uuid, selectedService);
+let chunkIndex = 0;
+for await (const chunk of result) {
+  // ファイルに保存する
+  const outputFilePath = `output/output_${chunkIndex}.wav`;
+  await chunk.saveToFile(outputFilePath);
+  console.log(`Audio saved to ${outputFilePath}`);
+  chunkIndex++;
+}
 
 // 終了処理
 rl.close();

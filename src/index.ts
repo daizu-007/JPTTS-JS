@@ -100,8 +100,37 @@ class JPTTS {
     return speakers;
   }
 
-  // 音声合成を行うメソッド
-  async generate(text: string, speaker: string, service: SpeechServices, style?: string): Promise<AudioResult> {
+  // ストリーミングで音声合成を行うメソッド
+  // *を関数名の前につけるとジェネレーター関数になる
+  async *synthesizeStream(
+    text: string,
+    speaker: string,
+    service: SpeechServices,
+    style?: string
+  ): AsyncGenerator<AudioResult> {
+    if (!this.isInitialized) {
+      await this.init();
+    }
+    // 分割したテキストを順にTTSして返していく
+    const sentences = textProcessor.processText(text);
+    for (const sentence of sentences) {
+      const audioChunk = await this.generate(sentence, speaker, service, style);
+      yield audioChunk;
+    }
+  }
+
+  // 全文を一括で音声合成するメソッド
+  // TODO: 分割後に結合するように変更する
+  async synthesize(text: string, speaker: string, service: SpeechServices, style?: string): Promise<AudioResult> {
+    if (!this.isInitialized) {
+      await this.init();
+    }
+    const audioData = await this.generate(text, speaker, service, style);
+    return audioData;
+  }
+
+  // 音声合成を行うヘルパーメソッド
+  private async generate(text: string, speaker: string, service: SpeechServices, style?: string): Promise<AudioResult> {
     if (!this.isInitialized) {
       await this.init();
     }

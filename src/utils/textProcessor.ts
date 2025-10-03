@@ -8,10 +8,12 @@ class TextProcessor {
   }
   // テキストを文ごとに分割する関数
   private splitText(text: string): string[] {
-    return text
+    const result = text
       .split(/([。.！？!\?\n])/)
       .map((t) => t.trim())
       .filter((t) => t.length > 0);
+    // 分割に使った文字のみの要素を削除
+    return result.filter((t) => !/[。.！？!\?\n]/.test(t));
   }
   // TTSできない文字を除去する関数
   private removeUnsupportedChars(text: string): string {
